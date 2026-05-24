@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { execSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { loadConfig, loadProjectConfig, buildEffectiveRules } from "./config";
@@ -47,6 +48,43 @@ export default function (pi: ExtensionAPI) {
         return sysPaths;
       }
     } catch { /* fall through */ }
+    // 策略 1.5：通过 which pi 找到二进制 → 解析符号链接 → 定位包根目录
+    // 比 npm root -g 更快（无需启动 npm），直接定位到实际运行的 pi 安装
+    try {
+      const whichResult = execSync("which pi", {
+        encoding: "utf-8",
+        timeout: 3000,
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (whichResult) {
+        // 解析符号链接链得到真实路径（如 dist/cli.js）
+        const realBin = fs.realpathSync(whichResult);
+        // 从真实路径向上查找包含 package.json 的目录
+        let pkgDir = path.dirname(realBin);
+        const root = path.parse(pkgDir).root;
+        while (pkgDir !== root) {
+          if (fs.existsSync(path.join(pkgDir, "package.json"))) {
+            if (addPiPaths(pkgDir)) return sysPaths;
+            break;
+          }
+          pkgDir = path.dirname(pkgDir);
+        }
+      }
+    } catch { /* fall through */ }
+
+    // 策略 1.6：使用 npm root -g 查找全局 node_modules（比 which pi 更通用）
+    try {
+      const npmRoot = execSync("npm root -g", {
+        encoding: "utf-8",
+        timeout: 5000,
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (npmRoot) {
+        const candidate = path.join(npmRoot, ...piPkgName.split("/"));
+        if (addPiPaths(candidate)) return sysPaths;
+      }
+    } catch { /* fall through */ }
+
     // 策略 2：从 Node 二进制路径推导 global prefix
     // process.execPath 如 /usr/local/bin/node → prefix = /usr/local
     try {
@@ -70,7 +108,11 @@ export default function (pi: ExtensionAPI) {
     // 策略 4：常见全局安装路径
     const commonPaths = process.platform === "win32"
       ? [path.join(process.env.APPDATA || "", "npm/node_modules")]
-      : ["/usr/local/lib/node_modules", "/usr/lib/node_modules"];
+      : [
+          "/usr/local/lib/node_modules",
+          "/usr/lib/node_modules",
+          path.join(os.homedir(), ".npm-global/lib/node_modules"),
+        ];
     for (const base of commonPaths) {
       const candidate = path.join(base, ...piPkgName.split("/"));
       if (addPiPaths(candidate)) return sysPaths;
