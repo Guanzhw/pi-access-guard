@@ -2,7 +2,7 @@
 
 Mandatory access control extension for [pi coding agent](https://github.com/earendil-works/pi-coding-agent).
 
-By default, pi has unrestricted filesystem and shell access — convenient, but risky. This extension provides granular access control so pi can run directly on a personal machine without requiring container isolation. The design is inspired by [zeroclaw's access control](https://github.com/zeroclow/pi-access-control) approach.
+By default, pi has unrestricted filesystem and shell access — convenient, but risky. This extension provides granular access control so pi can run directly on a personal machine without requiring container isolation. The design is inspired by [zeroclaw's access control](https://github.com/zeroclaw-labs/zeroclaw) approach.
 
 Intercepts tool calls (`read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`, and extension tools) and enforces a policy that returns one of three actions: **allow**, **ask** (interactive approval via TUI), or **deny** (block with reason).
 
