@@ -1,0 +1,29 @@
+{
+  "name": "pi-access-guard",
+  "version": "0.1.0",
+  "description": "Lightweight, cross-platform security guard for pi coding agent",
+  "type": "module",
+  "main": "index.ts",
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "minimatch": "^10.0.0",
+    "unbash": "^1.0.0"
+  },
+  "keywords": [
+    "pi",
+    "security",
+    "sandbox",
+    "guard",
+    "permissions"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.1",
+    "@types/node": "^25.8.0",
+    "typescript": "^6.0.3"
+  }
+}
