@@ -2,9 +2,27 @@
 
 Mandatory access control extension for [pi coding agent](https://github.com/earendil-works/pi-coding-agent).
 
-By default, pi has unrestricted filesystem and shell access — convenient, but risky. This extension provides granular access control so pi can run directly on a personal machine without requiring container isolation. The design is inspired by [zeroclaw's access control](https://github.com/zeroclaw-labs/zeroclaw) approach.
+## The problem
 
-Intercepts tool calls (`read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`, and extension tools) and enforces a policy that returns one of three actions: **allow**, **ask** (interactive approval via TUI), or **deny** (block with reason).
+Before using pi, I noticed it had no security measures at all. My first instinct was to run pi inside a Docker container for isolation. But it didn't take long to realize that keeping pi in a container severely limited its usefulness in daily development — extra performance overhead, extra environment setup. The real question became: **How can I prevent pi from accidentally doing something destructive**, while keeping it running directly on my machine?
+
+## The approach
+
+I had used [zeroclaw](https://github.com/zeroclaw-labs/zeroclaw) before and knew that a well-designed access control mechanism could effectively prevent accidental destructive operations from an agent. So I had pi (running in the container) study zeroclaw's design and produce a simple access guard that could work outside the container.
+
+The result is this extension: it hooks into pi's `tool_call` events, intercepts every filesystem and shell operation, and enforces a policy that returns one of three actions: **allow**, **ask** (interactive approval via TUI), or **deny** (block with reason).
+
+## ⚠️ Disclaimer
+
+I've been using this extension in my own workflow for a while now, but **I do not recommend installing it and then letting pi run unattended in your working environment**. As stated above, this extension is designed to prevent accidental destructive operations **in my specific working environment** — it cannot stop a determined agent that intends to do harm.
+
+For production-grade safety rails, refer to more mature systems like [codex](https://github.com/openai/codex) or [zeroclaw](https://github.com/zeroclaw-labs/zeroclaw).
+
+## Takeaway
+
+pi agent + a capable LLM (in my case, DeepSeek V4 Pro) is enough to build a usable security design. Start building your own guard!
+
+---
 
 ## How it works
 
@@ -63,7 +81,7 @@ Internal tools (`read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`) cannot be
 
 | Preset | read | write | edit | bash | Default for tools without rules |
 |---|---|---|---|---|---|
-| `isolated` | allow | deny | deny | deny (read-only commmands like cat, grep, ls allowed) | deny |
+| `isolated` | allow | deny | deny | deny (read-only commands like cat, grep, ls allowed) | deny |
 | `standard` | allow | ask | ask | allow for 60+ read commands, ask for write commands, deny for destructive commands (rm, shutdown, dd) | ask |
 | `trusted` | allow | allow | allow | allow | allow |
 
